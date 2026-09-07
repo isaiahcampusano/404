@@ -2,8 +2,7 @@
 
 3D endless runner inspired by Chrome's offline dinosaur game
 
-<img width="762" height="654" alt="image" src="https://github.com/user-attachments/assets/a5b1ccdf-551c-4aba-8eb4-8432523daa1e" />
-
+<img width="783" height="649" alt="image" src="https://github.com/user-attachments/assets/93a4dc82-eb13-494c-92cc-761f29c33ad3" />
 
 **Play:** https://isaiahcampusano.github.io/404/
 
