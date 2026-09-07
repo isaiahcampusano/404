@@ -29,7 +29,7 @@ export class GameEngine {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.8));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFShadowMap;
     host.appendChild(this.renderer.domElement);
     this.setupScene(); this.resize(); window.addEventListener('resize', this.resize);
     this.highScore = Number(localStorage.getItem('no-signal-high') || 0); this.emit(true);
