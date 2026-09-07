@@ -47,8 +47,8 @@ button:focus-visible { outline: 2px solid var(--foreground); outline-offset: 4px
 .flash.on { opacity: .28; }
 @media (max-width: 640px), (pointer: coarse) {
   .controls { display: none; }
-  .mobile-controls { position: absolute; inset: auto 0 18px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; pointer-events: none; }
-  .mobile-controls button { height: 54px; border: 1px solid var(--border); border-radius: 2px; background: rgba(23,25,28,.72); color: var(--foreground); font: 600 10px var(--font-game), monospace; letter-spacing: .18em; text-transform: uppercase; pointer-events: auto; touch-action: manipulation; }
+  .mobile-controls { position: absolute; inset: auto 0 18px; z-index: 4; display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 0 12px; pointer-events: none; }
+  .mobile-controls button { min-width: 0; height: 54px; padding: 0 4px; border: 1px solid var(--border); border-radius: 2px; background: rgba(23,25,28,.72); color: var(--foreground); font: 600 9px var(--font-game), monospace; letter-spacing: .1em; text-transform: uppercase; pointer-events: auto; touch-action: manipulation; }
   .title { font-size: clamp(36px, 13vw, 62px); } .scoreboard { gap: 16px; } .scoreboard > div:first-child { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .start-button, .flash { transition: none; } }

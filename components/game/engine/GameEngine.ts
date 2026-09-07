@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { GAME, type ActionState, type GamePhase, type ObstacleKind } from './config';
+import { GAME, type ActionState, type GamePhase, type Lane } from './config';
+import { createObstaclePattern, interpolate, laneX, rangesOverlap, shiftLane } from './gameplay';
 import { animateObstacle, createBird, createCactus, type ActiveObstacle } from './obstacles';
 
 export interface GameSnapshot { phase: GamePhase; score: number; highScore: number; speed: number; action: ActionState; }
@@ -9,7 +10,7 @@ export class GameEngine {
   private onSnapshot: (snapshot: GameSnapshot) => void;
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(68, 1, 0.1, 180);
+  private camera = new THREE.PerspectiveCamera(74, 1, 0.1, 180);
   private timer = new THREE.Timer();
   private frame = 0;
   private phase: GamePhase = 'ready';
@@ -23,6 +24,10 @@ export class GameEngine {
   private nextSpawnIn = 34;
   private lastSnapshot = 0;
   private crashedAt = 0;
+  private targetLane: Lane = 0;
+  private playerX = laneX(0);
+  private laneFromX = laneX(0);
+  private laneChangeTime: number = GAME.laneChangeDuration;
 
   constructor(host: HTMLElement, onSnapshot: (snapshot: GameSnapshot) => void) {
     this.host = host; this.onSnapshot = onSnapshot;
@@ -42,13 +47,13 @@ export class GameEngine {
     const hemi = new THREE.HemisphereLight(0xece9df, 0x30333a, 2.5);
     const key = new THREE.DirectionalLight(0xffffff, 3.6); key.position.set(-4, 8, 4); key.castShadow = true;
     this.scene.add(hemi, key);
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(13, 190), new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 1 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(18, 190), new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 1 }));
     floor.rotation.x = -Math.PI / 2; floor.position.z = -78; floor.receiveShadow = true; this.scene.add(floor);
     const lineMaterial = new THREE.MeshBasicMaterial({ color: 0x686965, transparent: true, opacity: 0.68 });
     for (let row = 0; row < 28; row += 1) {
       const z = -row * 6;
-      for (const x of [-5.8, 5.8]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 1.2), lineMaterial); post.position.set(x, 0.025, z); this.scene.add(post); this.trackMarkers.push(post); }
-      const dash = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 1.7), lineMaterial); dash.position.set(0, 0.015, z); this.scene.add(dash); this.trackMarkers.push(dash);
+      for (const x of [-8.1, 8.1]) { const post = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 1.2), lineMaterial); post.position.set(x, 0.025, z); this.scene.add(post); this.trackMarkers.push(post); }
+      for (const x of [-GAME.laneWidth / 2, GAME.laneWidth / 2]) { const dash = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 1.7), lineMaterial); dash.position.set(x, 0.015, z); this.scene.add(dash); this.trackMarkers.push(dash); }
     }
     const horizon = new THREE.Mesh(new THREE.RingGeometry(16, 16.04, 64, 1, 0, Math.PI), new THREE.MeshBasicMaterial({ color: 0x575954, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
     horizon.position.set(0, -1.8, -85); this.scene.add(horizon);
@@ -58,17 +63,21 @@ export class GameEngine {
     const dustGeometry = new THREE.BufferGeometry(); dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3)); this.scene.add(new THREE.Points(dustGeometry, dustMaterial));
   }
 
-  start = () => { if (this.phase === 'running') return; this.clearObstacles(); this.phase = 'running'; this.action = 'run'; this.actionTime = 0; this.distance = 0; this.speed = GAME.baseSpeed; this.nextSpawnIn = 36; this.timer.reset(); this.emit(true); };
+  start = () => { if (this.phase === 'running') return; this.clearObstacles(); this.phase = 'running'; this.action = 'run'; this.actionTime = 0; this.distance = 0; this.speed = GAME.baseSpeed; this.nextSpawnIn = 36; this.targetLane = 0; this.playerX = laneX(0); this.laneFromX = this.playerX; this.laneChangeTime = GAME.laneChangeDuration; this.camera.position.x = this.playerX; this.timer.reset(); this.emit(true); };
   primaryAction = () => { if (this.phase === 'running') this.jump(); else this.start(); };
   jump = () => { if (this.phase !== 'running' || this.action !== 'run') return; this.action = 'jump'; this.actionTime = 0; this.emit(true); };
   duck = () => { if (this.phase !== 'running' || this.action === 'jump') return; this.action = 'duck'; this.actionTime = 0; this.emit(true); };
+  moveLane = (direction: -1 | 1) => { if (this.phase !== 'running') return; const next = shiftLane(this.targetLane, direction); if (next === this.targetLane) return; this.targetLane = next; this.laneFromX = this.playerX; this.laneChangeTime = 0; };
 
   private updatePlayer(delta: number) {
     this.actionTime += delta; let eyeY: number = GAME.eyeHeight;
     if (this.action === 'jump') { const progress = Math.min(this.actionTime / GAME.jumpDuration, 1); eyeY += Math.sin(progress * Math.PI) * GAME.jumpHeight; if (progress >= 1) { this.action = 'run'; this.actionTime = 0; } }
     else if (this.action === 'duck') { eyeY = GAME.duckEyeHeight; if (this.actionTime >= GAME.duckDuration) { this.action = 'run'; this.actionTime = 0; } }
     const bob = this.action === 'run' ? Math.sin(this.distance * 0.72) * 0.025 : 0;
-    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, eyeY + bob, Math.min(delta * 22, 1)); this.camera.rotation.z = Math.sin(this.distance * 0.38) * 0.0025;
+    this.laneChangeTime = Math.min(GAME.laneChangeDuration, this.laneChangeTime + delta);
+    this.playerX = interpolate(this.laneFromX, laneX(this.targetLane), this.laneChangeTime / GAME.laneChangeDuration);
+    this.camera.position.x = this.playerX;
+    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, eyeY + bob, Math.min(delta * 22, 1)); this.camera.rotation.z = Math.sin(this.distance * 0.38) * 0.0025 + (laneX(this.targetLane) - this.playerX) * -0.012;
   }
 
   private moveTrack(delta: number) { for (const marker of this.trackMarkers) { marker.position.z += this.speed * delta; if (marker.position.z > 8) marker.position.z -= 168; } }
@@ -84,16 +93,21 @@ export class GameEngine {
   }
 
   private spawnObstacle() {
-    let obstacle: ActiveObstacle;
-    if (this.distance >= GAME.pterodactylUnlock && Math.random() < 0.42) { const kinds: Exclude<ObstacleKind, 'cactus'>[] = ['bird-low', 'bird-mid', 'bird-high']; obstacle = createBird(kinds[Math.floor(Math.random() * kinds.length)]); }
-    else { const maxCluster = this.distance >= GAME.clusterUnlock ? 3 : 1; obstacle = createCactus(1 + Math.floor(Math.random() * maxCluster)); }
-    obstacle.group.traverse((child) => { if (child instanceof THREE.Mesh) { child.castShadow = true; child.receiveShadow = true; } });
-    this.scene.add(obstacle.group); this.obstacles.push(obstacle);
+    const pattern = createObstaclePattern(this.distance);
+    for (const hazard of pattern.hazards) {
+      const obstacle = hazard.kind === 'cactus'
+        ? createCactus(hazard.lanes, hazard.clusterSize, hazard.scale)
+        : createBird(hazard.kind, hazard.crossing?.fromLane ?? hazard.lanes[0], hazard.crossing);
+      obstacle.group.traverse((child) => { if (child instanceof THREE.Mesh) { child.castShadow = true; child.receiveShadow = true; } });
+      this.scene.add(obstacle.group); this.obstacles.push(obstacle);
+    }
     this.nextSpawnIn = GAME.initialGap + this.speed * (1.65 + Math.random() * 0.82);
   }
 
   private collides(obstacle: ActiveObstacle) {
     if (Math.abs(obstacle.group.position.z - 1.9) > obstacle.halfDepth + GAME.playerDepth / 2) return false;
+    const obstacleXs = obstacle.crossing ? [obstacle.group.position.x] : obstacle.lanes.map(laneX);
+    if (!obstacleXs.some((x) => rangesOverlap(this.playerX - GAME.playerWidth / 2, this.playerX + GAME.playerWidth / 2, x - obstacle.halfWidth, x + obstacle.halfWidth))) return false;
     let playerBottom = 0; let playerHeight: number = GAME.playerHeight;
     if (this.action === 'jump') { const p = Math.min(this.actionTime / GAME.jumpDuration, 1); playerBottom = Math.sin(p * Math.PI) * GAME.jumpHeight; }
     else if (this.action === 'duck') playerHeight = GAME.duckHeight;
@@ -112,7 +126,7 @@ export class GameEngine {
     this.renderer.render(this.scene, this.camera); this.frame = requestAnimationFrame(this.loop);
   };
 
-  private resize = () => { const width = this.host.clientWidth; const height = this.host.clientHeight; this.camera.aspect = width / Math.max(height, 1); this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); };
+  private resize = () => { const width = this.host.clientWidth; const height = this.host.clientHeight; const aspect = width / Math.max(height, 1); const targetHorizontalFov = THREE.MathUtils.degToRad(92); this.camera.aspect = aspect; this.camera.fov = THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(targetHorizontalFov / 2) / aspect)), 72, 106); this.camera.updateProjectionMatrix(); this.renderer.setSize(width, height, false); };
   private disposeGroup(group: THREE.Group) { group.traverse((child) => { if (child instanceof THREE.Mesh) child.geometry.dispose(); }); }
   private clearObstacles() { for (const obstacle of this.obstacles) { this.scene.remove(obstacle.group); this.disposeGroup(obstacle.group); } this.obstacles = []; }
   destroy() { cancelAnimationFrame(this.frame); window.removeEventListener('resize', this.resize); this.clearObstacles(); this.timer.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); }
