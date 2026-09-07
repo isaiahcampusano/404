@@ -6,10 +6,10 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "vinext dev",
-    "build": "vinext build",
-    "start": "wrangler dev --config dist/server/wrangler.json",
-    "lint": "oxlint app components/game",
+    "dev": "vite",
+    "build": "vite build",
+    "start": "vite preview",
+    "lint": "oxlint src components/game",
     "format": "oxfmt"
   },
   "dependencies": {

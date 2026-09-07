@@ -27,7 +27,7 @@ export function GameExperience() {
       else if (event.code === 'ArrowDown' || event.code.startsWith('Control')) engine.duck();
     };
     window.addEventListener('keydown', onKeyDown);
-    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+    if ('serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => undefined);
     return () => { window.removeEventListener('keydown', onKeyDown); if (flashTimerRef.current) window.clearTimeout(flashTimerRef.current); engine.destroy(); engineRef.current = null; };
   }, [handleSnapshot]);
   const onTouchStart = (event: React.TouchEvent) => { const touch = event.touches[0]; touchStartRef.current = { x: touch.clientX, y: touch.clientY }; };

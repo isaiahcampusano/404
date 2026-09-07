@@ -2,6 +2,8 @@
 
 A first-person 3D endless runner inspired by Chrome's offline dinosaur game. Sprint through a monochrome signal tunnel, jump cacti, duck airborne obstacles, and survive as the speed increases.
 
+**Play:** https://isaiahcampusano.github.io/404/
+
 ## Play locally
 
 ```bash

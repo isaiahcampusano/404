@@ -1,0 +1,41 @@
+:root { --background: #17191c; --foreground: #e7e4dc; --panel: #222529; --muted-foreground: #9b9b94; --border: rgba(231, 228, 220, 0.22); }
+* { box-sizing: border-box; }
+html, body, #root { width: 100%; height: 100%; overflow: hidden; }
+body { margin: 0; background: var(--background); color: var(--foreground); font-family: "Courier New", ui-monospace, monospace; overscroll-behavior: none; }
+button, canvas { -webkit-tap-highlight-color: transparent; }
+button:focus-visible { outline: 2px solid var(--foreground); outline-offset: 4px; }
+.game-shell { position: fixed; inset: 0; background: #17191c; isolation: isolate; }
+.game-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.game-canvas canvas { display: block; width: 100%; height: 100%; }
+.game-shell::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2; background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0, rgba(255,255,255,.018) 1px, transparent 1px, transparent 4px), radial-gradient(circle at 50% 44%, transparent 25%, rgba(0,0,0,.42) 115%); mix-blend-mode: screen, normal; }
+.hud { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.topbar { position: absolute; top: clamp(18px, 4vw, 38px); left: clamp(18px, 4vw, 48px); right: clamp(18px, 4vw, 48px); display: flex; justify-content: space-between; align-items: flex-start; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-foreground); }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--foreground); }
+.signal { display: inline-flex; gap: 3px; align-items: flex-end; height: 11px; }
+.signal i { width: 2px; background: currentColor; display: block; }
+.signal i:nth-child(1) { height: 3px; } .signal i:nth-child(2) { height: 6px; } .signal i:nth-child(3) { height: 9px; opacity: .25; }
+.signal::after { content: ''; width: 1px; height: 14px; background: currentColor; transform: rotate(45deg); margin-left: -7px; }
+.scoreboard { display: flex; gap: clamp(14px, 4vw, 42px); text-align: right; }
+.scoreboard span { display: block; margin-top: 5px; color: var(--foreground); font-size: 16px; letter-spacing: .11em; }
+.center-card { position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 40px)); text-align: center; pointer-events: auto; }
+.eyebrow { margin: 0 0 18px; font-size: 10px; letter-spacing: .42em; text-transform: uppercase; color: var(--muted-foreground); }
+.title { margin: 0; font-size: clamp(38px, 8vw, 76px); line-height: .92; letter-spacing: .16em; font-weight: 580; }
+.title small { display: block; margin-top: 13px; font-size: .18em; letter-spacing: .5em; color: var(--muted-foreground); font-weight: 500; }
+.rule { width: 74px; height: 1px; margin: 27px auto 24px; background: var(--foreground); opacity: .42; }
+.prompt { margin: 0; font-size: 13px; letter-spacing: .14em; line-height: 1.8; color: var(--foreground); }
+.subprompt { margin: 9px 0 0; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted-foreground); }
+.start-button { margin-top: 24px; min-width: 180px; height: 44px; border: 1px solid var(--foreground); border-radius: 2px; background: var(--foreground); color: var(--background); font: 600 11px/1 "Courier New", monospace; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; pointer-events: auto; transition: background .18s, color .18s; }
+.start-button:hover { background: transparent; color: var(--foreground); }
+.controls { position: absolute; left: 50%; bottom: clamp(18px, 4vw, 36px); transform: translateX(-50%); display: flex; align-items: center; gap: 12px; color: var(--muted-foreground); font-size: 9px; letter-spacing: .13em; text-transform: uppercase; white-space: nowrap; }
+.key { padding: 6px 8px; border: 1px solid var(--border); color: var(--foreground); background: rgba(23,25,28,.5); }
+.mobile-controls { display: none; }
+.status-pill { position: absolute; left: 50%; top: 29%; transform: translateX(-50%); color: var(--muted-foreground); font-size: 9px; letter-spacing: .24em; text-transform: uppercase; }
+.flash { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: #e7e4dc; opacity: 0; transition: opacity 100ms; }
+.flash.on { opacity: .28; }
+@media (max-width: 640px), (pointer: coarse) {
+  .controls { display: none; }
+  .mobile-controls { position: absolute; inset: auto 0 18px; z-index: 4; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; pointer-events: none; }
+  .mobile-controls button { height: 54px; border: 1px solid var(--border); border-radius: 2px; background: rgba(23,25,28,.72); color: var(--foreground); font: 600 10px "Courier New", monospace; letter-spacing: .18em; text-transform: uppercase; pointer-events: auto; touch-action: manipulation; }
+  .title { font-size: clamp(36px, 13vw, 62px); } .scoreboard { gap: 16px; } .scoreboard > div:first-child { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .start-button, .flash { transition: none; } }
