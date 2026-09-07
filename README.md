@@ -1,6 +1,9 @@
 # 404 // No Signal
 
-A first-person 3D endless runner inspired by Chrome's offline dinosaur game. Sprint through a monochrome signal tunnel, jump cacti, duck airborne obstacles, and survive as the speed increases.
+3D endless runner inspired by Chrome's offline dinosaur game
+
+<img width="762" height="654" alt="image" src="https://github.com/user-attachments/assets/a5b1ccdf-551c-4aba-8eb4-8432523daa1e" />
+
 
 **Play:** https://isaiahcampusano.github.io/404/
 
